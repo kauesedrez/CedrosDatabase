@@ -13,4 +13,4 @@ Utilize o cdbmyadmin para gerenciar seus bancos.
 
 As extensões .js foram alteradas para .jss prevendo que em alguns ambientes de trabalho (empresas) as extensões .js são bloqueadas.
 
-Mais em cedrosdev.com.br ou pelo email kaue.sedrez@gmail.com
+Mais em http://www.cedrosdev.com.br ou pelo email kaue.sedrez@gmail.com

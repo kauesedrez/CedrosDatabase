@@ -1,7 +1,7 @@
 # CedrosDatabase
 Sistema de banco de dados noSQL ao lado do cliente.
 
-Utiliza controles activex do internet explorer para usar arquivos txt como bando de dados estruturados.
+Utiliza controles activex do internet explorer para usar arquivos txt como banco de dados estruturados.
 
 Mesmo não sendo SQL, inspira-se nele, utilizando a mesma filosofia.
 

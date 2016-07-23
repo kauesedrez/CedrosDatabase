@@ -1,0 +1,1220 @@
+﻿<!--
+	#cdoc
+-->
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<script src="jquery.jss"></script>
+		<script src="path.txt"></script>
+		<script src="cedrosDb.jss"></script>
+		
+		<title>CDB MyAdmin</title>
+		<script>
+		
+		//--> trigger que armazena a informação de quando alguma alteração foi feita na tabela
+		var salvar=false;
+		//<--
+		
+		//--> variavel que registra quais linhas tiveram valores adicionados
+		var adds = true;
+		//<--
+		
+		/*|||||||||||||||||||||||||||||||*/// ----------------------------------|||||||||||||||||||||||||||||||
+		/*|||||||||||||||||||||||||||||||*/var conexao=new CedrosDatabase();//--|||||||||||||||||||||||||||||||			
+		/*|||||||||||||||||||||||||||||||*/var banco=conexao.getDatabases();//--|||||||||||||||||||||||||||||||
+		/*|||||||||||||||||||||||||||||||*/// ----------------------------------|||||||||||||||||||||||||||||||
+					
+		
+			function mostrarTabela(b) {
+				loading('show');
+				t=setTimeout(function(){
+				clearTimeout(t);
+				conexao.database_=b;
+				var inicio, meio, fim;
+				$("#nomeBanco").html(b);
+				
+				var tabelas=conexao.getTables(b);
+				
+				//alert(tabelas.length);
+				
+				if(tabelas.length==0)
+				{
+					
+					log("Não há tabelas cadastradas ainda em "+b)
+					$("#divTabela").html("");
+				}
+				else
+				{
+					inicio="<table id=\"tableDatabases\">";
+					meio="";
+					fim="</table>";
+					for(i=0;i<tabelas.length;i++) 
+					{
+					
+						meio+="<tr><td><input alt='Renomear' title='Renomear' type=\"button\" id='btn_"+tabelas[i]+"' value=\" R \" onClick=\"renomearTabela('"+b+"','"+tabelas[i]+"')\"></td>	<td><input type=\"button\" value=\" X \" title='Apagar' alt='Apagar' onClick=\"apagarTabela('"+b+"','"+tabelas[i]+"')\"> <input type=\"button\" value=\" V \" title='Visualizar' alt='Visualizar' onClick=\"visualizarTabela('"+b+"','"+tabelas[i]+"')\"></td><td><a href=\"javascript:tabelaDetalhada('"+b+"','"+tabelas[i]+"')\" class=\"link1\">"+tabelas[i]+"</a></td></tr>";
+					}
+					$("#divTabela").html(inicio+meio+fim);
+					log("Tabelas do banco de dados "+b+" sendo mostradas.");
+					
+						
+				}
+				loading('hide');
+				
+			},2000);
+			}
+			function renomearTabela(b,t) {
+			
+					var novoNome=prompt("Qual o novo nome da tabela?");
+					if(!novoNome) return void(0);
+					conexao.renameTable(b,t,novoNome);
+					mostrarTabela(b);
+				
+						
+			}
+			function renomearBanco(b) {
+			
+				var novoNome=prompt("Qual o novo nome do Banco de Dados?");
+				if(!novoNome) return void(0);
+				conexao.renameDatabase(b,novoNome);
+				location.reload();
+			
+			}
+			function apagarBanco(b) {
+			
+				teste=confirm("Deseja realmente apagar o banco de dados '"+b+"' e todas as tabelas e registros dele? \n\nATENÇÃO!\n\nEsta ação não poderá ser desfeita!");
+				
+				if(teste){
+					
+					conexao.deleteDatabase(b);
+					location.reload();
+				
+				}
+			
+			}
+			function apagarTabela(b,t) {
+			
+				teste=confirm("Deseja realmente apagar a tabela '"+t+"' do banco de dados '"+b+"' e todos os registros dela? \n\nATENÇÃO!\n\nEsta ação não poderá ser desfeita!");
+				
+				if(teste) {
+				
+					conexao.deleteTable(b,t);
+					mostrarTabela(b);
+				
+				}
+			
+			}
+			function visualizarTabela(b,t) {
+			
+				conexao.database_=b;
+				conexao.table_=t;
+				conexao.showTable();
+			
+			}
+			function tabelaDetalhada(b,t) {
+			
+				conexao.database_=b;
+				conexao.table_=t;
+				
+				query = [];
+				
+				query = conexao.getAll("LINE","0",">=");
+				
+				$("#nomeTabela,#menuTabela,#detalhe,#inserirColunas").fadeIn('slow');
+				$("#nomeTabela").html(b +" :: "+t);
+				
+				// gera o select coluna
+				selCol="<option value='final'>Depois de: no Final</option>";
+				// --> gera o resultado
+				res="";
+				res+="<table id=\"detalheTabela\">";
+				
+				for(j=-1;j<query.length;j++) {
+				
+					if(j==-1) {
+						res+="<tr id='tr"+j+"'>";
+						for(k=-1;k<conexao.numCols;k++) {
+					
+							if(k==-1||k==0) {
+							
+								res+="<td></td>";
+								
+							
+							}
+							else {
+							
+								res+="<td><input type=\"button\" value=\" X \" class=\"btX\" onClick=\"deletarColuna('"+k+"')\"></td>";
+							
+							}
+					
+						}
+						res+="</tr>";
+					
+					}
+					
+					else if(j==0) {
+					
+						res+="<tr id='tr"+j+"'>";
+						for(k=-1;k<conexao.numCols;k++) {
+						
+							if(k==-1) {
+							
+								res+="<td><input type=\"button\" value=\" + \" class=\"inputOpc btMais\" onClick=\"adicionarLinha("+j+")\"></td></td>";
+							
+							}
+							else if(k==0) {
+							
+								res+="<td>LINE</td>";
+								selCol+="<option value='0'> LINE </option>";
+							
+							}
+							else {
+							
+								res+="<td><input type=\"text\" value=\""+query[j][k]+"\" class=\"coluna\" id=\""+j+"-"+k+"\"></td>";
+								selCol+="<option value='"+k+"'>"+query[j][k]+"</option>"
+							}
+							
+						
+						}
+						res+="</tr>";
+					
+					}
+					
+					else {
+					
+						res+="<tr id='tr"+j+"'>";
+					
+						for(k=-1;k<conexao.numCols;k++) {
+					
+							if(k==-1) {
+							
+								res+="<td><input type=\"button\" value=\" X \" class=\"btX\" onClick=\"apagarLinha('"+j+"')\">&nbsp;<input type=\"button\" value=\" + \" class=\"inputOpc btMais\" onClick=\"adicionarLinha("+j+")\"></td>";
+							
+							}
+							else if(k==0) {
+							
+								res+="<td>"+query[j][k]+"</td>";
+							
+							}
+							else {
+							
+								res+="<td><input type=\"text\" value=\""+query[j][k]+"\" class=\"valor\" id=\""+j+"-"+k+"\"></td>";
+							
+							}
+						
+						}
+						
+						res+="</tr>";
+					
+					}
+					
+				}
+				res+="</table>";
+				// <-- gerou o resultado na var res
+				
+				// --> imprime
+				$("#detalhe").html("");
+				$("#detalhe").html(res);
+				$("#selectColuna").html(selCol);
+				log("Entrou na tabela "+t);
+					
+				// --> adiciona o handler
+				$(".coluna,.valor").change(function(){
+					salvar=true;
+				});
+			
+			
+			}
+			function salvarAlteracoes() {
+			
+				var resultado = [];
+				var totalDeLinhas=conexao.numLins;
+				
+				var a=0;
+				
+				for(j=0;j<=totalDeLinhas;j++) {
+				
+					resultado[j] = [];
+					for(k=0;k<conexao.numCols;k++) {
+					
+						if(k==0) {
+						
+							if(j==0) resultado[j][k]="LINE";
+							else resultado[j][k]=j;
+							
+						}
+						else {
+						
+							resultado[j][k] = $("#"+(j-a)+"-"+k).val();
+						
+						}
+							
+					}
+					
+					
+					
+					if($("#"+j+"-1-a").val()!=undefined) {
+					//quer dizer que há uma adição a ser feita
+					//alert("é por ai");
+						log("Entrou no novo valor");
+						j++;
+						totalDeLinhas++;
+						resultado[j] = [];
+						a++;
+						
+						for(k=0;k<conexao.numCols;k++) {
+					
+							if(k==0) {
+							
+								if(j==0) resultado[j][k]="LINE";
+								else resultado[j][k]=j;
+								
+							}
+							else {
+							
+								resultado[j][k] = $("#"+(j-1)+"-"+k+"-a").val();
+							
+							}
+							
+						}
+						
+					
+					}
+				
+				}
+				
+				//agora dentro de resultado[j][k] temos toda a tabela modificada
+				//proximo passo é salvar ela no arquivo
+				
+				var saida="";
+				
+				for(j=0;j<=totalDeLinhas;j++) {
+				
+					for(k=0;k<conexao.numCols;k++) {
+					
+						if(k==conexao.numCols-1)saida+=resultado[j][k]
+						else saida+=resultado[j][k]+"|-$-|";
+					
+					}
+					
+					saida+="\n";
+					
+				}
+				//--> remove o ultimo espaço
+				if(saida.substring((saida.length-1),saida.length)=="\n")saida=saida.substring(0,(saida.length - 1));
+				//<--
+				
+				//-->grava o arquivo
+				
+					var fso = new ActiveXObject("Scripting.FileSystemObject");
+					var file = fso.OpenTextFile(PATH+conexao.database_+"\\"+conexao.table_+".cdb",2,-1,0);
+					file.Write(saida);
+					file.Close();			
+				
+				//<--
+				
+				//--> reset o array adds
+					adds=true;
+					tabelaDetalhada(conexao.database_,conexao.table_);
+					$(".btMais,.btX").fadeIn();
+				//<--
+				
+				log("Alterações salvas com sucesso.");
+			}
+			function adicionarLinha(j) {
+			
+			
+				res="<tr>";
+					
+				for(k=-1;k<conexao.numCols;k++) {
+		
+					if(k==-1) {
+					
+						res+="<td></td>"
+					
+					}
+					else if(k==0) {
+					
+						res+="<td>a</td>";
+					
+					}
+					else {
+					
+						res+="<td><input type=\"text\" value=\"\" class=\"valor\" id=\""+j+"-"+k+"-a\"></td>";
+						
+					
+					}
+				
+				}
+				
+				res+="</tr>";
+				
+				if(adds){			
+					$("#tr"+j).append(res);
+					adds=false;
+					
+					$(".btMais,.btX").fadeOut();
+					
+					// --> adiciona o handler
+					$(".coluna,.valor").change(function(){
+						salvar=true;
+					});
+				}
+				
+					
+
+				
+			}
+			function log(x){
+				var now = new Date();
+				hh=now.getHours();
+				mm=now.getMinutes();
+				ss=now.getSeconds();
+				$("#logPanel").prepend("["+corrigeNumero(hh)+":"+corrigeNumero(mm)+":"+corrigeNumero(ss)+"] "+x+"<br />");
+			}
+			corrigeNumero = function(n) {
+				
+					switch(n){
+					
+						case 0: return "00"; break;
+						case 1: return "01"; break;
+						case 2: return "02"; break;
+						case 3: return "03"; break;
+						case 4: return "04"; break;
+						case 5: return "05"; break;
+						case 6: return "06"; break;
+						case 7: return "07"; break;
+						case 8: return "08"; break;
+						case 9: return "09"; break;
+						default: return n;break;
+					
+					}
+				
+				}
+			function deletarColuna(n) {
+			
+				teste=confirm("Deseja realmente deletar a coluna "+n+"?\n\n[!] ATENÇÃO [!] Esta ação não poderá ser desfeita e você pode perder dados importantes.");
+				
+				if(teste) {
+				
+					//se o usuário confirmar a ação remonta o arquivo sem a coluna (k==n)
+					resultado = [];
+					a=0;
+					numeroDeLinhas=conexao.numLins;
+					
+					for(j=0;j<=numeroDeLinhas;j++) {
+				
+						resultado[j] = [];
+						for(k=0;k<conexao.numCols;k++) {
+						
+							if(k==0) {
+						
+								if(j==0) resultado[j][k]="LINE";
+								else resultado[j][k]=j;
+							
+							}
+							else {
+							
+								if(k!=n) resultado[j][k-a] = $("#"+j+"-"+k).val();
+								else a++;
+							
+							}
+						}
+						if(a==1)a=0;
+					}
+					
+					//agora dentro de resultado[j][k] temos toda a tabela modificada
+					//proximo passo é salvar ela no arquivo
+					
+					var saida="";
+					
+					for(j=0;j<=numeroDeLinhas;j++) {
+					
+						for(k=0;k<(conexao.numCols-1);k++) {
+						
+							if(k==conexao.numCols-2)saida+=resultado[j][k]
+							else saida+=resultado[j][k]+"|-$-|";
+						
+						}
+						
+						saida+="\n";
+						
+					}
+					//--> remove o ultimo espaço
+					if(saida.substring((saida.length-1),saida.length)=="\n")saida=saida.substring(0,(saida.length - 1));
+					//<--
+					
+					//-->grava o arquivo
+					
+						var fso = new ActiveXObject("Scripting.FileSystemObject");
+						var file = fso.OpenTextFile(PATH+conexao.database_+"\\"+conexao.table_+".cdb",2,-1,0);
+						file.Write(saida);
+						file.Close();			
+					
+					//<--
+					
+					//--> reset o array adds
+						
+						tabelaDetalhada(conexao.database_,conexao.table_);
+						$(".btMais,.btX").fadeIn();
+					//<--
+					
+					log("Coluna deletada com sucesso.");
+					
+				}
+			}
+			function apagarLinha(n) {
+			
+				teste=confirm("Você tem certeza que deseja apagar toda esta linha? \n\n [!] ATENÇÃO [!] Esta ação não poderá ser desfeita.");
+				
+				if(teste) {
+				
+					conexao.del("LINE",n);
+					log("Linha deletada com sucesso");
+					tabelaDetalhada(conexao.database_,conexao.table_);
+				
+				}
+				
+				
+			
+			}
+			function inserirColunas() {
+						//alert(conexao.numLins);
+						//return void(0);
+				adds=true;
+				
+				var posicao = $("#selectColuna").val();
+				
+				//REMONTA O ARQUIVO
+				var resultado = [];				
+				
+				for(j=0;j<=conexao.numLins;j++) {
+				
+					resultado[j] = [];
+					for(k=0;k<conexao.numCols;k++) {
+					
+						if(k==0) {
+						
+							if(j==0) resultado[j][k]="LINE";
+							else resultado[j][k]=j;
+							
+						}
+						else {
+						
+							resultado[j][k] = $("#"+j+"-"+k).val();
+						
+						}	
+					}
+				}
+				
+				//
+				
+				var saida="";
+				
+				var numeroDeColunas = conexao.numCols;
+				
+				for(j=0;j<=conexao.numLins;j++) {
+				
+					for(k=0;k<(numeroDeColunas);k++) {
+					
+						//pegar o value do select para ver onde inserir
+						if((k==(numeroDeColunas-1))&&j==0) {
+						
+							saida+=resultado[j][k]+"|-$-|"+$("#nova1").val();
+							
+							
+						}
+						
+						
+						else {
+						
+							saida+=resultado[j][k]+"|-$-|";
+							
+						}
+					
+					}
+					
+					saida+="\n";
+					
+				}
+				//--> remove o ultimo espaço
+				if(saida.substring((saida.length-1),saida.length)=="\n")saida=saida.substring(0,(saida.length - 1));
+				//<--
+				
+				//-->grava o arquivo
+				
+					var fso = new ActiveXObject("Scripting.FileSystemObject");
+					var file = fso.OpenTextFile(PATH+conexao.database_+"\\"+conexao.table_+".cdb",2,-1,0);
+					file.Write(saida);
+					file.Close();			
+				
+				//<--
+				
+				tabelaDetalhada(conexao.database_,conexao.table_);
+				
+				log("Coluna inserida com sucesso");
+				
+				
+			}
+			function novoDb() {
+				
+				var db=prompt("Qual o nome do novo banco de dados?");
+				var fso = new ActiveXObject("Scripting.FileSystemObject");
+				
+				try{
+					f=fso.CreateFolder(PATH+db)
+					location.reload();
+				}
+				catch(e){
+						log("<hr>Erro: Não foi possivel criar o banco de dados. Ele já existe?<br>Erro original: "+e.message+"<hr>");
+				}
+			
+			}
+			function novaTabela() {
+			
+				if(conexao.database_==undefined) {
+					log("Você deve selecionar um banco de dados antes de adicionar tabelas");
+				}
+				else {
+					//magic happens here!
+					var tb=prompt("Qual o nome da nova tabela?");
+					var fso = new ActiveXObject("Scripting.FileSystemObject");
+					
+					try{
+						f=fso.CreateTextFile(PATH+conexao.database_+"\\"+tb+".cdb",false);
+						f.Write("LINE");
+						f.Close();
+						mostrarTabela(conexao.database_);
+					}
+					catch(e){
+						log("<hr>Erro: Não foi possivel criar a tabela. Ela já existe?<br>Erro original: "+e.message+"<hr>");
+					}	
+				}
+			}
+			function fileUpload() {
+			
+				var e = $("#fileinput").val();
+				
+				if(e == "") {
+				
+					alert("Você deve procurar um arquivo de texto válido");
+					log("Você deve procurar um arquivo de texto válido");
+					return void(0);
+					
+				}
+				
+				var fso = new ActiveXObject("Scripting.FileSystemObject");
+				var file = fso.OpenTextFile(e,1);
+				if (file.AtEndOfStream)
+				   arquivoOriginal="";
+				else
+				   arquivoOriginal=file.ReadAll();
+				file.Close();
+				
+				//arquivoOriginal retem o arquivo
+				
+				var coringa = $("#sep").val();
+				
+				if(coringa == "") {
+				
+					alert("O separador não pode ficar em branco");
+					log("O separador não pode ficar em branco");
+					return void(0);
+					
+				}
+				
+				
+				//agora faz um replace
+				
+				var coringa = new RegExp(escapeRegExp(coringa), 'g');
+				var res = arquivoOriginal.replace(coringa, "|-$-|");
+				
+				
+				// res possui o arquivo sem o LINE
+				// inserir o LINE
+				var linha=res.split("\n");
+				var coluna = [];
+				for(b=0;b<linha.length;b++) {
+				
+					coluna[b]=linha[b].split("|-$-|");
+				
+				}
+				
+				//agora coluna[0][0] possui os valores separados
+				
+				//remonta o arquivo
+				var saida="";
+				for(j=0;j<linha.length;j++) {
+				
+					for(k=0;k<coluna[0].length;k++) {
+					
+						if(k==0) {
+						
+							if(j==0) {
+							
+								saida+="LINE|-$-|"+coluna[j][k]+"|-$-|";
+							
+							}
+							else {
+							
+								saida+=j+"|-$-|"+coluna[j][k]+"|-$-|";
+							
+							}
+						
+						}
+						else {
+						
+							if(k==(coluna[0].length-1)) {
+							
+								saida+=coluna[j][k];
+							
+							}
+							else {
+							
+								saida+=coluna[j][k]+"|-$-|";
+								
+							}
+						}
+					}
+					
+					saida+="\n";
+					
+				}
+				
+				//--> remove o ultimo espaço
+				if(saida.substring((saida.length-1),saida.length)=="\n")saida=saida.substring(0,(saida.length - 1));
+				//<--
+				
+				//saida retem o arquivo decodificado final
+				
+				//--> grava a nova tabela
+				
+					if(conexao.database_==undefined) {
+						log("Você deve selecionar um banco de dados antes de adicionar tabelas");
+					}
+					else {
+						//magic happens here!
+						var tb=prompt("Qual o nome da nova tabela?");
+						var fso = new ActiveXObject("Scripting.FileSystemObject");
+						
+						try{
+							f=fso.CreateTextFile(PATH+conexao.database_+"\\"+tb+".cdb",false);
+							f.Write(saida);
+							f.Close();
+							mostrarTabela(conexao.database_);
+						}
+						catch(e){
+							log("<hr>Erro: Não foi possivel criar a tabela. Ela já existe?<br>Erro original: "+e.message+"<hr>");
+						}	
+					}
+					
+				//<--
+				
+				
+				
+			}
+			escapeRegExp = function(str) {
+			
+				return str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+				
+			}
+			loading = function(x) {
+			
+				if(x=="show") {
+					$("#loader").fadeIn('slow');
+					
+					}
+				else {
+					$("#loader").fadeOut('slow');			
+					
+				}
+			
+			}
+	// ---------- handlers ------------
+			$(function(){		
+				$("#btnFechar").click(function(){
+				
+					$("#nomeTabela,#menuTabela,#detalhe,#inserirColunas").fadeOut('slow');
+				
+				});
+				$("#btnSalvar").click(function(){
+				
+					if(!salvar){
+						log("Não há nenhuma alteração a ser salva.");
+					}
+					else {
+						salvarAlteracoes();
+						salvar=false;
+					}
+				
+				});
+				$("#btnInserir").click(function(){
+				
+					inserirColunas();
+				
+				});
+				$("#decode").click(function(){
+				
+					fileUpload();
+				
+				});
+				$("#btnImportar").click(function() {
+				
+					$("#importar").fadeIn('slow');
+				
+				});
+				$("#cancelar,#decode").click(function() {
+				
+					$("#importar").fadeOut('slow');
+				
+				});
+				
+			});
+			
+		</script>
+		<style>
+		body {
+			margin:	0;
+			padding: 0;
+		}
+		hr {
+			color:#ccc;		
+		}
+		a {
+		
+			font-family:Calibri;
+			font-size:11px;
+			text-decoration:none;
+			
+		
+		}
+		#titulo {
+		
+			width:1000px;
+			height:100px;
+			top:20px;
+			left:20px;
+			position:absolute;
+			
+			font-size:25px;
+			font-family: Calibri;
+			
+		
+		}
+		.versao{
+		
+			width:100%;
+			font-family:Calibri;
+			font-size:11px;
+			text-align:right;
+		
+		}
+		
+		#menuE {
+		
+			position:absolute;
+			top:120px;
+			left:20px;
+			width:290px;
+			
+		
+		
+		}
+			#tituloMenu {
+			
+				font-family:Calibri;
+				font-size:20px;
+			
+			}
+		#menuD {
+		
+			position:absolute;
+			top:120px;
+			left:320px;
+			width:700px;
+			
+		
+			
+		
+		
+		}
+		#divTabela {
+		
+			width:700px;
+			overflow:auto;
+			height:300px;
+		
+		}
+		#databases {
+		
+			width:290px;
+			overflow:auto;
+			height:300px;
+		
+		}
+		#tableDatabases tr td {
+		
+			font-family:Calibri;
+		
+		}
+		.link1,.link1:visited {
+		
+			font-family:Calibri;
+			font-size:15px;
+			color:#5555ff;
+			
+		}
+		.link1:hover {
+		
+			color:#000088;
+			
+		}
+		
+		
+		
+		#detalhe {
+		
+			position:absolute;
+			
+			top:190px;
+			left:30px;
+			
+			width:970px;
+			height:300px;
+			
+			overflow:auto;
+			
+			background-color:#080808;
+			filter: alpha(opacity=95);
+			
+			z-index:2;
+			
+			border:15px solid #aaa;
+			
+			display:none;
+			
+			color:#fff;
+		
+		
+		}
+		#nomeTabela {
+		
+			position:absolute;
+			
+			top:20px;
+			left:30px;
+			
+			width:970px;
+			height:70px;
+			
+			overflow:auto;
+			
+			background-color:#888;
+			filter: alpha(opacity=95);
+			
+			z-index:2;
+			
+			border:15px solid #aaa;
+			
+			font-family:Calibri;
+			font-size:28px;
+			color:#fff;
+			
+			text-align:center;
+			
+			display:none;
+		
+		
+		}
+		#menuTabela {
+		
+			position:absolute;
+			
+			top:100px;
+			left:30px;
+			
+			width:970px;
+			height:80px;
+			
+			overflow:auto;
+			
+			background-color:#888;
+			filter: alpha(opacity=95);
+			
+			z-index:2;
+			
+			border:15px solid #aaa;
+			
+			font-family:Calibri;
+			font-size:20px;
+			color:#fff;
+			
+			text-align:left;
+			
+			padding:10px;
+			
+			display:none;
+		
+		
+		}
+		#logPanel {
+		
+			position:absolute;
+			
+			top:500px;
+			left:30px;
+			
+			width:970px;
+			height:100px;
+			
+			overflow:auto;
+			
+			background-color:#fff;
+			filter: alpha(opacity=95);
+			
+			z-index:2;
+			
+			border:10px solid #eee;
+			
+			font-family:Calibri;
+			font-size:20px;
+			color:#555;
+			
+			text-align:left;
+			
+			padding:10px;
+			
+			display:visible;
+		
+		
+		}
+		#inserirColunas {
+		
+			position:absolute;
+			
+			top:120px;
+			left:270px;
+			
+			width:300px;
+			height:37px;
+			
+			overflow:none;
+			
+			background-color:#fff;
+			filter: alpha(opacity=95);
+			
+			z-index:3;
+			
+			border:1px solid #ff0000;
+			
+			font-family:Calibri;
+			font-size:20px;
+			color:#555;
+			
+			text-align:left;
+			
+			padding:5px;
+			
+			display:none;
+		
+		
+		}
+		#detalheTabela td{
+		
+			font-family:Courier New;
+			font-size:12px;
+			border-bottom:0px dotted #ddd;
+			border-right:1px dotted #aaa;
+			padding:5px;
+			text-align:center;
+			color:#aaa;
+		
+		}
+		.coluna {
+		
+			background-color:transparent;
+			border-bottom:1px solid #66ccff;
+			border-left:0px solid #5555ee;
+			border-right:0px solid #5555ee;
+			border-top:0px solid #5555ee;
+			font-family:Courier New;
+			font-weight:bold;
+			color:#fff;
+		
+		}
+		.valor {
+			
+			
+			background-color:transparent;
+			border-bottom:1px solid #ccffff;
+			border-left:0px solid #5555ee;
+			border-right:0px solid #5555ee;
+			border-top:0px solid #5555ee;
+			font-family:Courier New;
+			color:#fff;
+		
+		}
+		input {
+		background-color:transparent;
+			border-bottom:1px solid #aa0000;
+			border-left:1px solid #aa0000;
+			border-right:1px solid #aa0000;
+			border-top:1px solid #aa0000;
+			font-family:Calibri;
+			color:#aa0000;
+		
+		}
+		.inputOpc {
+		
+			border:1px solid #fff;
+			color:#fff;
+		
+		}
+		.selectOpc {
+			border:1px solid #fff;
+			color:#fff;
+			background-color:#888;
+		
+		}
+		.separador {
+		
+			width:20px;
+		
+		}
+		#importar {
+		
+			font-family:Calibri;
+			font-size:12px;
+			border-bottom:1px solid #ccc;
+			border-left:1px solid #ccc;
+			border-right:1px solid #ccc;
+			border-top:1px solid #ccc;
+			margin:5px;
+			padding:5px;
+			display:none;
+		
+		}
+		#loader {
+		
+			position: absolute;
+			top:450px;
+			left:40px;
+			
+			width:155px;
+			
+			
+			border-bottom:1px solid #63e1e3;
+			border-left:1px solid #63e1e3;
+			border-right:1px solid #63e1e3;
+			border-top:1px solid #63e1e3;
+			
+			padding:10px;
+			padding-top:15px;
+			
+			display:none;
+			
+			z-index:5;
+			
+			
+			
+		}
+		
+		
+		
+		</style>
+	</head>
+	<body>
+	<div id="titulo">
+		CDB MyAdmin
+		<hr>
+		<span class="versao">
+		v1.0 | <a href="www.cedrosdev.com.br" target="_blank">cedrosdev.com.br</a>
+		</span>
+	</div>
+	
+	<div id="menuE">
+	
+		<div id="tituloMenu">
+			Bancos de Dados<hr>
+		</div>
+		
+		<input type="button" value=" Novo DB " onClick="novoDb()"><p>
+		
+		<div id="databases">
+		
+		<table id="tableDatabases">
+			<script>
+			if(banco.length==0) {
+				document.write("Não há banco de dados cadastrados ainda");
+			}
+			else {
+				out="";
+				for(i=0;i<banco.length;i++) {
+					out+="<tr>\
+						<td><input type=\"button\" value=\" R \" alt='Renomear' title='Renomear' onClick=\"renomearBanco('"+banco[i]+"')\"></td>\
+						<td><input type=\"button\" value=\" X \" alt='Apagar' title='Apagar' onClick=\"apagarBanco('"+banco[i]+"')\"></td>\
+						<td><a href=\"javascript:mostrarTabela('"+banco[i]+"');void(0);\" class=\"link1\" id='link_"+banco[i]+"'>"+banco[i]+"</a></td>\
+					</tr>";
+				}
+				document.write(out);
+			}
+			</script>
+		</table>
+		
+		
+		</div>
+	
+	
+	</div>
+	
+	<div id="menuD">
+		<div id="tituloMenu">
+			Tabelas [banco: <span id="nomeBanco">Selecione um banco de dados para começar</span>]<hr>
+		</div>
+		<input type="button" value=" Nova Tabela " onClick="novaTabela()"> <input type="button" value=" Importar Tabela " id="btnImportar"> 
+		
+		<div id="importar">
+		
+		<input type="file" id="fileinput" /> <input type="text" class="separador" id="sep"> Separador <input type="button" value="Decodificar" id="decode"> <input type="button" value="Cancelar" id="cancelar">
+		
+		</div>
+		<p>
+		<div id="divTabela">
+		
+		</div>
+	
+	</div>
+	
+	
+	<div id="nomeTabela">
+	Empresa :: Clientes
+	</div>
+	
+	<div id="menuTabela">
+	<input type="button" value="Salvar Alterações" class="inputOpc" id="btnSalvar">
+	
+	<input type="button" value="Fechar" class="inputOpc" id="btnFechar">
+
+	
+	
+	
+	
+	</div>
+	
+	
+	<div id="detalhe">
+	</div>
+	
+	<div id="inserirColunas">
+	
+		<input type="button" value="Inserir Coluna"  id="btnInserir"> <input type="text" id="nova1">
+	
+	</div>
+	
+
+	
+	<div id="loader"><img src="loader.gif"> </div>
+	<div id="logPanel"></div>
+	
+	
+	</body>
+</html>

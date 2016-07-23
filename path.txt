@@ -1,0 +1,16 @@
+﻿/*
+#cdoc
+*/
+/* [init block]
+#desc: 	Coloque dentro da variável constante PATH o caminho completo do seu servidor (pasta onde serão armazenados os banco de dados), por exemplo:
+		'\\\\Pastadarede\\Banco de Dados TXT\\databases\\'
+		OU
+		'D:\\Sistema\\databases\\'
+		Não esqueça das barras finais.
+*/
+	/* --> PATH = O caminho da aplicação */
+	
+	PATH = "D:\\PROGRAMACAO\\_Cedros Development\\Cedros Database\\Core\\CDB\\databases\\";
+	
+	/* <-- */	
+/* [end block] */

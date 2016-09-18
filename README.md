@@ -15,4 +15,4 @@ As extensões .js foram alteradas para .jss prevendo que em alguns ambientes de 
 
 Mais em http://www.cedrosdev.com.br ou pelo email kaue.sedrez@gmail.com
 
-Todo: Wiki
+veja a Wiki para saber como usar.
